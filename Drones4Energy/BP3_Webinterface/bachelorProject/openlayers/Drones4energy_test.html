@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html>
+  <head>
+   <link rel="shortcut icon" href="#" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.3.1/css/ol.css" type="text/css">
+    <meta charset="utf-8">
+    <title>Drones4Energy</title>
+    <style>
+    /* ########################### The map style ############################ */
+      html, body,
+      #map-container {
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        font-family: sans-serif;
+        background-color: #04041b;
+      }
+
+      /* ########################### The drone popup style ############################ */
+      .popup {
+         /* short comments for what the style do*/
+         position: fixed; /* the position of the element is fixed  */
+         background-color: white; /* the coler of the opbject */
+         box-shadow: 0 1px 4px rgba(0,0,0,0.2); /* shadow around the box */
+         padding: 15px; /* content placement */
+         border-radius: 10px; /* rounded corners of the object */
+         border: 1px solid #cccccc; /* Borde around the object */
+         top: 14%; /* placement between top of the webpage and the object */
+         right: 30px; /* placement between right side of the webpage and the object */
+         width: 160px; /* the width of the object */
+         height: 230px; /* the height of the object */
+         z-index: 2; /* z index defines which object is "on top" of each other from the perspektiv of the user */
+         display: none; /* if the object is showed on the screen or not */
+      } /* the buttons on the popup*/
+      .popup-button {
+         background-color: #ACFEB5;
+         color: black;
+         margin: 4px 2px;
+         border-radius: 5px;
+         text-align: center;
+         text-decoration: none;
+         display: inline-block;
+         font-size: 16px;
+         cursor: pointer;
+         width: 70%;
+         height: 20%;
+         transition-duration: 0.1s;
+      } /* The close button for the popup*/
+      .popup-closer {
+         position: absolute;
+         top: 0;
+         right: 25px;
+         font-size: 36px;
+      }
+
+      /* ########################### The error sidebar style ############################ */
+      .sidebar {
+         position: fixed;
+         background-color: #111;
+         height: 100%;
+         width: 0px;
+         top: 0;
+         left: 0;
+         z-index: 1;
+         overflow-x: hidden; /* hide scroll bar when not needed */
+         padding-top: 60px;
+         transition: 0.3s; /* transition effekt when opened and closed */
+      }
+      /* Link on the sidebar */
+      .sidebar a {
+         padding: 8px 8px 8px 32px;
+         text-decoration: none;
+         font-size: 25px;
+         color: #818181;
+         display: block;
+         transition: 0.3s;
+      }
+      /* When you mouse over the navigation links, change their color */
+      .sidebar a:hover {
+         color: #f1f1f1;
+      }
+
+      /* Position and style the close button (top right corner) */
+      .sidebar .closebtn {
+         position: absolute;
+         top: 0;
+         right: 25px;
+         font-size: 36px;
+         margin-left: 50px;
+      }
+
+      /* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
+      @media screen and (max-height: 450px) {
+         .sidebar {padding-top: 15px;}
+         .sidebar a {font-size: 18px;}
+      }
+
+      /* ########################### the layer visualizer ############################ */
+      .visualizer {
+         position: fixed; /* Stay in place */
+         background-color: white;
+         box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+         padding-top: 0.4%;
+         padding-left: 0.3%;
+         padding-right: 0.3%;
+         padding-bottom: 0.8%;
+         border-radius: 10px;
+         border: 1px solid #cccccc;
+         top: 15px;
+         right: 30px;
+         width: 35%;
+         height: 6%;
+         z-index: 2;
+      }
+      .visualizer-button {
+         background-color: #ACFEB5;
+         color: black;
+         
+         border-radius: 5px;
+         text-align: center;
+         text-decoration: none;
+         display: inline-block;
+         font-size: 10px;
+         cursor: pointer;
+         float:left;
+         border: 1px solid white;
+         width: 19%;
+         height: 100%;
+         transition-duration: 0.1s;
+      }
+      .visualizer-button-clicked {
+         background-color: white;
+         color: black;
+         margin: 4px 2px;
+         border: 2px solid #4CAF50;
+         border-radius: 2px;
+         text-align: center;
+         text-decoration: none;
+         display: inline-block;
+         font-size: 16px;
+         cursor: pointer;
+         float:left;
+         width: 19%;
+         height: 100%;
+         transition-duration: 0.1s;
+      }
+      /* ########################### END OF the layer visualizer ############################ */
+
+      /* ########################### the context menu (right click) ############################ */
+      .contextm {
+         position: absolute;
+         background-color: white;
+         box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+         padding: 1%;
+         border: 1px solid #cccccc;
+         width: 100px;
+         height: 40px;
+         z-index: 1;
+      }
+      .contextm-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+      }
+      .contextm-button {
+         background-color: #ACFEB5;
+         color: black;
+         margin: 4px 2px;
+         border-radius: 5px;
+         text-align: center;
+         text-decoration: none;
+         display: inline-block;
+         font-size: 12px;
+         cursor: pointer;
+         float:left;
+         border: 1px solid white;
+         width: 75%;
+         height: 80%;
+         transition-duration: 0.1s;
+      }
+
+   </style>
+
+    <!-- script import for jquery, ROS and OpenLayers -->
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+    <script type="text/javascript" src="http://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.3.1/build/ol.js"></script>
+  </head>
+
+  <body>
+     <!-- ######################### The map ######################### -->
+    <div id="map-container"></div>
+    <!-- ######################### The drone popup ######################### -->
+    <div id="popup" class="popup">
+      <a href="#" id="popup-closer" class="popup-closer">&times;</a>
+      <div id="popup-content"></div>
+      <!-- buttons for send a route to the drones, calculate the route and show it,
+      pane over to start and end of the route -->
+      <button id="btn_drone_start" type="button" class="popup-button">Start Route</button>
+      <button id="btn_route" type="button" class="popup-button">calculate Route</button>
+      <button id="btn_start" type="button" class="popup-button">Show Start</button>
+      <button id="btn_end" type="button" class="popup-button">Show End</button>
+    </div>
+    <!-- ####################### The error sidebar ############################## -->
+    <div id="errorbar" class="sidebar">
+       <a href="#" id="error_close_bnt" class="closebtn">&times;</a>
+       <!-- button for removing the error site -->
+       <button id="btn_remove_error" type="button" class="ol-popup-button">Remove site</button>
+       <!-- the holder of the error images-->
+       <picture id="error_imgs">
+       </picture>
+    </div>
+    <!-- ######################### The visualizer ######################### -->
+    <div id="visualizer" class="visualizer">
+      <!-- buttons for show and hide each layer; drones, restricted zones, drone route, error sites and power towers-->
+      <button id="btn_drone_layer" type="button" class="visualizer-button">Drones</button>
+      <button id="btn_no_zone_layer" type="button" class="visualizer-button">No-Fly</button>
+      <button id="btn_route_layer" type="button" class="visualizer-button">Route</button>
+      <button id="btn_error_layer" type="button" class="visualizer-button">Errors</button>
+      <button id="btn_tower_layer" type="button" class="visualizer-button">Towers</button>
+    </div>
+    <!-- ######################### The context menu on towers ######################### -->
+    <div id="contextm" class="contextm">
+      <!-- closer button -->
+      <a href="#" id="contextm-closer" class="contextm-closer">&times;</a>
+      <!-- button for selecting all towers between last to selected -->
+      <button id="btn_select_line" type="button" class="contextm-button">Select all between</button>
+    </div>
+
+    <!-- Script for all functions on the webpage and ros connection -->
+    <script type="text/javascript">
+    // #################### The Styles ##################
+      // style for the error icon
+      var errorStyle = new ol.style.Style({
+        // icon for the error site
+        image: new ol.style.Icon({
+          scale: 0.06,
+          src: 'http://10.123.3.11:5000/marker'
+        })
+      });
+
+      // drone style when not working
+      var droneStyle = new ol.style.Style({
+        // cirkel style with fill an stroke to mark the drone
+        image: new ol.style.Circle({
+          radius: 7,
+          fill: new ol.style.Fill({
+             color: 'green'
+          }),
+          stroke: new ol.style.Stroke({
+             color: 'black',
+             width: 2
+          })
+        })
+      });
+
+      // drone style when working
+      var droneWorkStyle = new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: 7,
+          fill: new ol.style.Fill({
+             // color change to see when it works and is bussy
+             color: 'rgba(255, 255, 51, 1)'
+          }),
+          stroke: new ol.style.Stroke({
+             color: 'black',
+             width: 2
+          })
+        })
+      });
+
+      // style for the selected power towers
+      var highlightStyle = new ol.style.Style({
+         // a circle style with fill and stroke
+         image: new ol.style.Circle({
+         // larger size when selected
+            radius: 7,
+            fill: new ol.style.Fill({
+               // new coler to pop more out
+               color: 'rgba(51, 255, 153, 1)'
+            }),
+            stroke: new ol.style.Stroke({
+               color: 'rgba(70, 70, 70, 1)',
+               width: 2
+            })
+         })
+      });
+
+      // Style for the power towers
+      var tower_style = new ol.style.Style({
+         // a circle style with fill and stroke
+         image: new ol.style.Circle({
+            radius: 5,
+            fill: new ol.style.Fill({
+               color: 'rgba(255, 255, 255, 0.8)'
+            }),
+            stroke: new ol.style.Stroke({
+               color: 'rgba(85, 85, 85, 1)',
+               width: 1
+            })
+         })
+      });
+
+      // style for the restricted error
+      var no_zone_style = new ol.style.Style({
+         // stroke and fill for the polygons, the colors being red
+         stroke: new ol.style.Stroke({
+            color: 'rgba(255, 0, 0, 0.4)',
+            width: 1
+         }),
+         fill: new ol.style.Fill({
+            color: 'rgba(255, 0, 0, 0.1)'
+         })
+      });
+      // #################### END OF the styles ##################
+
+      // #################### Layers on the map and the map itself ##################
+      // map layer
+      var mapLayer = new ol.layer.Tile({
+         // the visual map for the map source
+         source: new ol.source.OSM()
+      })
+
+      //The mappping for zones
+      var vectorLayer_noZone = new ol.layer.VectorImage({
+         // given the source the geojson file with all data for the restricted fligth zones
+         source: new ol.source.Vector({
+            format: new ol.format.GeoJSON(),
+         	url: 'http://10.123.3.11:5000/no_zone'
+         }),
+         // give the layer the style
+         style: no_zone_style
+      });
+
+      // The mapping of the electirc towers
+      var vl_tower = new ol.layer.VectorImage({
+         source: new ol.source.Vector({
+            format: new ol.format.GeoJSON(),
+      	   url: 'http://10.123.3.11:5000/graph'
+         }),
+         style: tower_style
+      });
+
+      // Vector layer for the route layer, empty to start with
+      var vectorLayer_route = new ol.layer.Vector({
+         source: new ol.source.Vector({})
+      });
+
+      // Vector layer for the error icon, empty to start with
+      var vectorLayer_error = new ol.layer.Vector({
+         source: new ol.source.Vector({}),
+         style: errorStyle
+      });
+
+      //Vector layer for the drones, empty to start with
+      var vl_drones = new ol.layer.Vector({
+         source: new ol.source.Vector({})
+      });
+
+      // getting the context menu element
+      var cm = document.getElementById('contextm');
+      //overlay for the tower contextmenu
+      var ol_contextm = new ol.Overlay({
+         element: cm,
+         autoPan: true,
+         autoPanAnimation: {
+            duration: 250
+         }
+      });
+      // #################### END OF Layers on the map and the map itself ##################
+
+      // #################### The map setup ##################
+      //the view for the map, set fixed on denmark
+      var view = new ol.View({
+         center: [1130000,7590000],
+         zoom: 7.7
+      });
+
+      // init the map with all the layers and overlay for popup
+      var map = new ol.Map({
+      // Insert the map in the html element for the map
+      target: 'map-container',
+      // all layers are added on top of each other from left to right.
+      layers: [mapLayer, vl_tower, vectorLayer_error, vectorLayer_route, vl_drones, vectorLayer_noZone],
+      overlays: [ol_contextm],
+      // set veiw to be on Denmark
+      view: view
+      });
+      // #################### END OF The map setup ##################
+
+      // #################### The clicker function ##################
+      // array for the selected towers
+      var selected = [];
+      // var for which error site we are looking at
+      var error_selected;
+      // dictionary for errors with coordinates as keys and images as values
+      var error_dict = {};
+      // dictionary for the drones, with ID as key
+      var drone_dict = {};
+
+      // Function to handle 'clicking' on the map elements like drones, tower and so on
+      // the on function with a listender
+      // all return statesment is used to only call the function on 1 feature if multiple is clicked at once
+      map.on('singleclick', function(e) {
+         //remove the context menu if open
+         ol_contextm.setPosition(undefined);
+         cm_closer.blur();
+         // Map function to find the feature f where we clicked
+         map.forEachFeatureAtPixel(e.pixel, function(f) {
+            // if clicked on a error icon
+            if ((f.get('name')) == "Error") {
+               // reset the errorbar and open it for the given error site
+               error_selected = f;
+               document.getElementById("errorbar").style.width = "0";
+               clean_images();
+               // get the sidebar and images again for the new site
+               document.getElementById("errorbar").style.width = "250px";
+               get_images(f.get("id"));
+               return true;
+            // if clicked on a power tower, many power tower have different values for the key 'power'
+            } else if ((f.get('power')) != undefined) {
+               // get popup html element
+               var popup = document.getElementById('popup');
+               // test if tower is already selected
+               var selIndex = selected.indexOf(f);
+               // if not selected
+               if (selIndex < 0) {
+                  // add to list and highlight on map
+                  selected.push(f);
+                  f.setStyle(highlightStyle);
+               // if selected
+               } else {
+                  // remove tower and remove highlight style
+                  selected.splice(selIndex, 1);
+                  f.setStyle(undefined);
+                  // Check if it was the last tower
+                  if (selected.length == 0) {
+                     // remove popup
+                     popup.style.display = "none";
+                     popup.blur();
+                  }
+               }
+               // show the popup when the first tower is selected
+               if (selected.length == 1) {
+                  popup.style.display = "block";
+               }
+               return true;
+            }
+         });
+      });
+      // #################### END OF The clicker function ##################
+
+      // #################### Context menu for multiple tower selection ##################
+      //right click function for selecting multiple towers. Using right click listender 'contextmenu'
+      map.on('contextmenu', function(e) {
+         // check if atleast one tower has been selected before
+         if (selected.length >= 1) {
+            map.forEachFeatureAtPixel(e.pixel, function(f) {
+               // check if the clicked feature is a power tower
+               if ((f.get('power')) != undefined) {
+                  // cancel the standar contextmenu
+                  e.preventDefault();
+                  // add tower to selected towers
+                  selected.push(f);
+                  f.setStyle(highlightStyle);
+                  // open new contextmenu on the tower
+                  ol_contextm.setPosition(f.getGeometry().getCoordinates());
+                  return true;
+               }
+            })
+         }
+      });
+
+      //manuel close the context menu (right click)
+      var cm_closer = document.getElementById('contextm-closer');
+      cm_closer.onclick = function() {
+         ol_contextm.setPosition(undefined);
+         cm_closer.blur();
+         return false;
+      };
+
+      // button function for selecting all tower between last two selected
+      var btn_limic = document.getElementById('btn_select_line');
+      btn_limic.onclick = function() {
+         //reset the contextmenu
+         ol_contextm.setPosition(undefined);
+         cm_closer.blur();
+         // FInd the last two towers and collect coordinate and ID info
+         var first_t =  ol.proj.transform(selected[selected.length-1].getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326');
+         var second_t = ol.proj.transform(selected[selected.length-2].getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326');
+         var first = [parseInt(selected[selected.length-1].get("@id").substring(5))].concat(first_t);
+         var second = [parseInt(selected[selected.length-2].get("@id").substring(5))].concat(second_t);
+
+         //call astar for the last two selected towers
+         $.getJSON( "http://10.123.3.11:5000/selectAll",{'first':first,'second':second})
+         .done(function(data) {
+            // check for error message return
+            if ((typeof data['path']) == 'string') {
+               // displey error message
+               alert(data['path']);
+               return;
+            };
+           // Loop over the towers and 'select' them
+           for(var i=0; i < data['path'].length; i++) {
+             let coords = data['path'][i]
+             var f = vl_tower.getSource().getClosestFeatureToCoordinate(ol.proj.transform([coords[1],coords[0]], 'EPSG:4326', 'EPSG:3857'));
+             // check if the tower is already selected, and add if not
+             if (selected.indexOf(f) < 0) {
+                 selected.unshift(f);
+                 f.setStyle(highlightStyle);
+             };
+           };
+         })
+         .fail( function(data) {
+            // error message if the jquery call failed
+            alert(data['ERROR, could not select towers']);
+         });
+      };
+      // #################### END OF Context menu for multiple tower selection ##################
+
+      // #################### The  visualizer ##################
+      // all the html button elements for the vi visualizer
+      var btn_drone = document.getElementById('btn_drone_layer');
+      var btn_no_zone = document.getElementById('btn_no_zone_layer');
+      var btn_route = document.getElementById('btn_route_layer');
+      var btn_error = document.getElementById('btn_error_layer');
+      var btn_tower = document.getElementById('btn_tower_layer');
+
+      // add clicker function to all of them with input layer and html element
+      btn_tower.onclick = function() {vizual_click(vl_tower, this)};
+      btn_no_zone.onclick = function() {vizual_click(vectorLayer_noZone, this)};
+      btn_route.onclick = function() {vizual_click(vectorLayer_route, this)};
+      btn_error.onclick = function() {vizual_click(vectorLayer_error, this)};
+      btn_drone.onclick = function() {vizual_click(vl_drones, this)};
+
+      // clciker function for v´hide/show layers
+      function vizual_click (layer, element) {
+         // check layer for visual state
+         if (layer.getVisible() == true) {
+            // update layer and button
+            layer.setVisible(false);
+            element.className = 'visualizer-button-clicked';
+         } else {
+            // update layer and button
+            layer.setVisible(true);
+            element.className = 'visualizer-button';
+         };
+      };
+      // #################### END OF The visualizer ##################
+
+      // #################### The popup ##################
+      // all the html button elements for the vi popup
+      var t_show_start = document.getElementById('btn_start');
+      var t_show_end = document.getElementById('btn_end');
+      var t_calculate_route = document.getElementById('btn_route');
+      var t_start_route = document.getElementById('btn_drone_start');
+      var closer = document.getElementById('popup-closer');
+
+      // list for the route data, to send to the drone
+      var route_data = [];
+      // id of the drone to fly the route
+      var route_drone_id;
+      // list of tower to check, to send to the drone
+      var route_towers = [];
+
+      // closer function for the popup
+      closer.onclick = function() {close_popup()};
+
+      function close_popup() {
+         //remove the context menu if open
+         ol_contextm.setPosition(undefined);
+         cm_closer.blur();
+         // empty the selected list
+         while (selected.length > 0) {
+            selected[selected.length-1].setStyle(undefined);
+            selected.pop();
+         };
+         // remove rendered route
+         vectorLayer_route.getSource().clear();
+         //empty reoute data, route towers and drone id
+         route_data = [];
+         route_drone_id = undefined;
+         route_towers = [];
+         // remove popop
+         popup.style.display = "none";
+         popup.blur();
+      };
+
+      // pane over to the start of the route function when clicked on the button
+      t_show_start.onclick = function() {
+         // check if a route is calculated
+         if (route_data.length > 0) {
+            //get the last tower in the route
+            var point = ol.proj.fromLonLat([route_data[0][1],route_data[0][0]]);
+            //pane to the point
+            view.animate({
+               center: point,
+               duration: 1500,
+               zoom: 12
+            });
+         } else {
+            // error message if no route is calculated
+            alert("No route selected");
+         };
+      };
+
+      // same code for the show end button, view show start for comments
+      t_show_end.onclick = function() {
+         if (route_data.length > 0) {
+            var point = ol.proj.fromLonLat([route_data[route_data.length-1][1],route_data[route_data.length-1][0]]);
+            view.animate({
+               center: point,
+               duration: 1500,
+               zoom: 12
+            });
+         } else {
+            alert("No route selected");
+         };
+      };
+
+      // button function for calculate route and show it on the map
+      t_calculate_route.onclick = function() {
+         // list for holding drones we know is available and not working
+         var p_drones_list = [];
+         //loop over every drone to check if they are available
+         for(var i=0; i<Object.keys(drone_dict).length; i++) {
+            // check the drones work atribute
+            if (drone_dict[Object.keys(drone_dict)[i]].get('work') == 0) {
+               // if drones is available, get all needed info: ID, closest tower coordinates
+               let id = Object.keys(drone_dict)[i];
+               drone_choord = drone_dict[id].getGeometry().getCoordinates();
+               // get closet tower to the drone inorder to TSP to know where the drone are on the tower graph
+               let closest_t = ol.proj.transform(vl_tower.getSource().getClosestFeatureToCoordinate(drone_choord).getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326');
+               p_drones_list.push([drone_dict[id].get('id'), parseInt(vl_tower.getSource().getClosestFeatureToCoordinate(drone_choord).get("@id").substring(5)) ,closest_t[0], closest_t[1]]);
+            };
+         };
+         // if any drones are available calculate the route
+         if (p_drones_list.length > 0) {
+            //list of tower coordinates and ids for tsp
+            var route_list = [];
+            // get all info from the selected tower
+            for (var i=0; i <selected.length; i++) {
+               let drone_info = ol.proj.transform(selected[i].getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326');
+               drone_info.unshift(parseInt(selected[i].get("@id").substring(5)));
+               route_list.push(drone_info);
+            };
+            // Make jquery call with drone and tower info, and return data which contains the route and drone
+            $.getJSON( "http://10.123.3.11:5000/tsp",{'drones':p_drones_list,'towers':route_list})
+            .done(function(data) {
+               // check if tsp failed and return error message
+               if ((typeof data['path']) == 'string') {
+                  alert(data['path']);
+                  return;
+               }
+               //get path and drone id
+               route_drone_id = data['path'][0];
+               route_data = data['path'][1];
+               //getting the coordinates for route_towers for which towers to check up on
+               for (var i=0; i<selected.length; i++) {
+                  route_towers.push(ol.proj.transform(selected[i].getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326'));
+               }
+
+               // visualize the route on the map
+               // list to hold all the feartures for the route (lines between each tower on the route)
+               var feature_list =[];
+               // for each line between two towers in the route calculate its color and coordinates
+               for (var i=0; i<=route_data.length-2; i++) {
+                  // push the line feature to the list
+                  feature_list.push(new ol.Feature({geometry: new ol.geom.LineString([ol.proj.fromLonLat([route_data[i][1],route_data[i][0]]), ol.proj.fromLonLat([route_data[i+1][1],route_data[i+1][0]])])}));
+                  // calculate color for the line, so we get a nice gradiant for the route
+                  var x = Math.trunc((255/(route_data.length-1))*i);
+                  var y = 255-x;
+                  // give each line a style with the coler
+                  feature_list[i].setStyle(
+                     new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                           color: 'rgba(0, '+x+', '+y+', 0.5)',
+                           width: 6,
+                        })
+                     })
+                  );
+               };
+               // clean route layer and update it with the new route
+               vectorLayer_route.getSource().clear();
+               vectorLayer_route.getSource().addFeatures(feature_list);
+               map.render;
+            })
+            .fail( function(data) {
+               // alert if the jquery call failed
+               alert(data['ERROR, could not calculate route']);
+            });
+         //else alert the user that no drones are available
+         } else {
+            // alert if alle drones are working at the moment
+            alert("No drones available");
+         };
+      };
+
+      // start route button function sending the route data to the drone
+      t_start_route.onclick = function() {
+         // check if a route have been calculated and data is acceptable
+         if (route_data != [] && route_drone_id != undefined) {
+            // construct first part of drone message, containing dorne ID and length of to data list
+            var msg = [parseFloat(route_drone_id), parseFloat(route_data.length), parseFloat(route_towers.length)];
+            var msg2="";
+            // for each tower on the route add the coordinate separete to the message
+            for (var i=0; i<route_data.length; i++) {
+               msg.push(route_data[i][1]);
+               msg.push(route_data[i][0]);
+               myfloat=route_data[i][1];
+               myfloat2=route_data[i][0];
+               msg2 += myfloat.toString();
+               msg2 += ",";
+               msg2 += myfloat2.toString();
+               msg2 += ",";
+            }
+            // for each tower to inspect add the coordinates separete to the message
+            for (var i=0; i<route_towers.length; i++) {
+               msg.push(route_towers[i][0]);
+               msg.push(route_towers[i][1]);
+               fl1=route_towers[i][0];
+               fl2=route_towers[i][1];
+               msg2 += fl1.toString();
+               msg2 += ",";
+               msg2 += fl2.toString();
+               msg2 += ",";
+            }
+            // get the drone coordinaes for panning to it
+            let point = ol.proj.fromLonLat([route_data[0][1],route_data[0][0]]);
+            // Send the message to the drones with ROS
+            dRoute.publish({data:msg});
+            path_t.publish({data:msg2});
+	    var message = 'hello from rosbridge ';
+            example.publish({data: message});
+            // pane over to the drone
+            view.animate({
+               center: point,
+               duration: 1500,
+            });
+
+            // clean up and close close popup
+            close_popup();
+         } else {
+            // if no route is selected allert
+            alert("No route selected");
+         }
+      };
+      // #################### END OF The popup ##################
+
+      // #################### Error sidebar functions ##################
+      // getting all html elements for the errorbar
+      var error_close = document.getElementById('error_close_bnt');
+      var error_imgs = document.getElementById('error_imgs');
+      var remove_error = document.getElementById('btn_remove_error');
+
+      // remove function for the error bar
+      remove_error.onclick = function() {
+         //clean the sidebar
+         document.getElementById("errorbar").style.width = "0";
+         clean_images();
+         //remove the error site from the dict and the map
+         delete error_dict[error_selected.get("id")];
+         vectorLayer_error.getSource().removeFeature(error_selected);
+      };
+
+      // close function for the error bar
+      error_close.onclick = function() {
+         document.getElementById("errorbar").style.width = "0";
+         clean_images();
+      };
+
+      // cleaning all the images in the sidebar
+      function clean_images () {
+         // for all images in the html object error_imgs remove it
+         while (error_imgs.hasChildNodes()) {
+            error_imgs.removeChild(error_imgs.firstChild);
+         }
+      };
+
+      // setting up the images from the error site, given the coordinates of the error site
+      function get_images (dict_lookup) {
+         // get images for error site and insert them
+         let img_data = error_dict[dict_lookup];
+         for (var i=0; i <img_data.length; i++) {
+            document.getElementById('error_imgs').appendChild(img_data[i]);
+         }
+      };
+      // #################### END OF Error sidebar functions for close and images ##################
+
+      // ####################  Connecting to ROS  ####################
+      //
+      var ros = new ROSLIB.Ros({
+         url : 'ws://10.123.3.11:9090'
+      });
+      // If there is an error on the backend, an 'error' emit will be emitted.
+      ros.on('error', function(error) {
+        console.log(error);
+      });
+      // Find out exactly when we made a connection.
+      ros.on('connection', function() {
+        console.log('Connection made!');
+      });
+      ros.on('close', function() {
+        console.log('Connection closed.');
+      });
+      // #################### End of connecting to ROS ####################
+
+      // #################### All the ROS publisher ####################
+     var dRoute = new ROSLIB.Topic({
+         ros : ros,
+         name : '/dRoute',
+         messageType : 'pylon_locator/IntList'
+      });
+	  // Publish a Test Topic
+     var example = new ROSLIB.Topic({
+         ros : ros,
+         name : '/example_topic',
+         messageType : 'std_msgs/String'
+     });
+      var path_t = new ROSLIB.Topic({
+         ros : ros,
+         name : '/path_t',
+         messageType : 'std_msgs/String'
+      });
+
+      // #################### All the ROS lisnters ####################
+      var drones = new ROSLIB.Topic({
+         ros : ros,
+         name : '/drones',
+         messageType : 'pylon_locator/IntList'
+      });
+
+      drones.subscribe(function(message) {
+         // From message get Id and find drone
+         let id = message.data[2].toString();
+         //let drone = drone_dict[id];
+
+         // if the drone exist
+         if (drone_dict[id] != undefined) {
+            //update drone coordinate
+            let drone = drone_dict[id];
+            drone.getGeometry().setCoordinates(ol.proj.fromLonLat([message.data[0], message.data[1]]));
+            // the drones work style is checked and ajusted if needed
+            if (message.data[3] != drone_dict[message.data[2]].get('work')) {
+               if (message.data[3] == 0) {
+                  drone.setStyle(droneStyle);
+               } else {
+                  drone.setStyle(droneWorkStyle);
+               };
+            };
+         // if the drone does not exist, make a new drone
+         } else {
+            //Make new feaature for the drone, and insert attributes
+            drone_dict[id] = new ol.Feature({
+               geometry: new ol.geom.Point(ol.proj.fromLonLat([message.data[0], message.data[1]])),
+               name: 'drone',
+               id: message.data[2],
+               // work types: 0=none, r=recharge, 1=working
+               work: message.data[3]
+            });
+            let drone = drone_dict[id];
+            // Set style accondenly
+            if (message.data[3] == 0) {
+               drone.setStyle(droneStyle);
+            } else {
+               drone.setStyle(droneWorkStyle);
+            };
+               vl_drones.getSource().addFeature(drone);
+         };
+      });
+      //
+      var image_topic = new ROSLIB.Topic({
+         ros: ros, name: '/image_raw',
+         messageType: 'sensor_msgs/Image'
+      });
+
+      image_topic.subscribe(function(message) {
+         // get coordinates from the image file name
+         var name = message.header.frame_id.split("(")[0].split(",");
+         var cordinate = [parseFloat(name[0]),parseFloat(name[1])];
+
+         // check if error site does not exist
+         if (error_dict[cordinate] == undefined) {
+            // make a canvas object
+            var can = $("<canvas>")
+             .attr("width", message.width)
+             .attr("height", message.height)[0];
+            // Get canvas 2D drawing object
+            var ctx = can.getContext('2d');
+
+            //COnstruct image on the canvas
+            const imgData = ctx.createImageData(message.width, message.height);
+            const data = imgData.data;
+            const inData = atob(message.data);
+
+            var j = 0; i = 4;
+            while( j < inData.length) {
+                const w1 = inData.charCodeAt(j++);  // read 3 16 bit words represent 1 pixel
+                const w2 = inData.charCodeAt(j++);
+                const w3 = inData.charCodeAt(j++);
+                if (!message.is_bigendian) {
+                    data[i++] = w3; // red
+                    data[i++] = w2; // green
+                    data[i++] = w1; // blue
+                } else {
+                    data[i++] = (w1 >> 8) + ((w1 & 0xFF) << 8);
+                    data[i++] = (w2 >> 8) + ((w2 & 0xFF) << 8);
+                    data[i++] = (w3 >> 8) + ((w3 & 0xFF) << 8);
+                }
+                data[i++] = 255;  // alpha
+            }
+
+            // insert the image on the canvas
+            ctx.putImageData(imgData, 0, 0);
+
+            //resize to an image
+            var result = (100/(imgData.width/200))/100
+            var img = new Image();
+            img.width = imgData.width*result;
+            img.hight = imgData.hight*result
+            // convert canvas to be a URL and add to the error site dict
+            img.src = can.toDataURL();
+            error_dict[cordinate] = [img];
+
+            // Add feature for the error site
+            vectorLayer_error.getSource().addFeatures([
+               new ol.Feature({
+                  geometry: new ol.geom.Point(ol.proj.fromLonLat(cordinate)),
+                  name: 'Error',
+                  id: cordinate
+               })
+            ]);
+
+         // if the error site already exist add the image to the dict
+         }else {
+            var can = $("<canvas>")
+             .attr("width", message.width)
+             .attr("height", message.height)[0];
+
+            var ctx = can.getContext('2d');
+
+            const imgData = ctx.createImageData(message.width, message.height);
+            const data = imgData.data;
+            const inData = atob(message.data);
+
+            var j = 0; i = 4; // j data in , i data out
+            while( j < inData.length) {
+                const w1 = inData.charCodeAt(j++);  // read 3 16 bit words represent 1 pixel
+                const w2 = inData.charCodeAt(j++);
+                const w3 = inData.charCodeAt(j++);
+                if (!message.is_bigendian) {
+                    data[i++] = w3; // red
+                    data[i++] = w2; // green
+                    data[i++] = w1; // blue
+                } else {
+                    data[i++] = (w1 >> 8) + ((w1 & 0xFF) << 8);
+                    data[i++] = (w2 >> 8) + ((w2 & 0xFF) << 8);
+                    data[i++] = (w3 >> 8) + ((w3 & 0xFF) << 8);
+                }
+                data[i++] = 255;  // alpha
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+
+            var result = (100/(imgData.width/200))/100
+            var img = new Image();
+            img.width = imgData.width*result;
+            img.hight = imgData.hight*result
+            img.src = can.toDataURL();
+            error_dict[cordinate].push(img);
+         }
+      });
+      // #################### END OF ROS ####################
+
+      // #################### Artificial drone feature and error site for testing ####################
+      // normally this would not be a part of the code, but for interacting with the bachelor and see the weboage functionality
+      // we dicided to let it stay
+
+      // drone feature aded to the dict, ID='1'
+      drone_dict['1'] = new ol.Feature({
+         geometry: new ol.geom.Point(ol.proj.fromLonLat([10.45999,55.436717])),
+         name: 'drone',
+         id: '1',
+         work: 0
+      });
+      // adding the style and set the drone on the layer
+      drone_dict['1'].setStyle(droneWorkStyle);
+      vl_drones.getSource().addFeature(drone_dict['1']);
+
+      // drone feature aded to the dict, ID='1'
+      //drone_dict['2'] = new ol.Feature({
+        // geometry: new ol.geom.Point(ol.proj.fromLonLat([11.3, 55.30])),
+        // name: 'drone',
+        // id: '2',
+       //  work: 0
+      //});
+      // adding the style and set the drone on the layer
+      //drone_dict['2'].setStyle(droneWorkStyle);
+      //vl_drones.getSource().addFeature(drone_dict['2']);
+
+      // images
+      var x = document.createElement("IMG");
+      x.setAttribute("src", "https://silkeborgnyt.dk/wp-content/uploads/2015/02/elnet-615x410.jpg");
+      x.setAttribute("width", "250");
+      x.setAttribute("height", "200");
+      var y = document.createElement("IMG");
+      y.setAttribute("src", "https://s3.ap-south-1.amazonaws.com/cms-abp-prod-media/library/THE_TELEGRAPH/mig/1131016/images/16tower1_192230.jpg");
+      y.setAttribute("width", "250");
+      y.setAttribute("height", "200");
+
+      // images for error sites
+      var img_list1 = [x];
+      var img_list2 = [y];
+      // coordinates and images in URL form for the site
+      var cords2 =[9.25, 56.55]; // done
+      var cords3 =[9.455, 55.45]; // done
+      var cords4 =[10.2, 55.998]; // done
+      var cords5 =[9.8, 56.88];
+      var cords6 =[9.05, 56.1552];
+      // add the error to the dict for look up
+      error_dict[cords2] = img_list1;
+      error_dict[cords3] = img_list2;
+      error_dict[cords4] = img_list1;
+      error_dict[cords5] = img_list2;
+      error_dict[cords6] = img_list1;
+
+      //add the feature to the vectoru layer
+      vectorLayer_error.getSource().addFeatures([
+         new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat(cords2)),
+            name: 'Error',
+            id: cords2
+         })
+      ]);
+      vectorLayer_error.getSource().addFeatures([
+         new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat(cords3)),
+            name: 'Error',
+            id: cords3
+         })
+      ]);
+      vectorLayer_error.getSource().addFeatures([
+         new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat(cords4)),
+            name: 'Error',
+            id: cords4
+         })
+      ]);
+      vectorLayer_error.getSource().addFeatures([
+         new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat(cords5)),
+            name: 'Error',
+            id: cords5
+         })
+      ]);
+      vectorLayer_error.getSource().addFeatures([
+         new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat(cords6)),
+            name: 'Error',
+            id: cords6
+         })
+      ]);
+      // #################### END OF Artificial drone feature and error site for testing ##################
+    </script>
+  </body>
+</html>

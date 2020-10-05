@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>OpenLayers</title>
+    <style>
+    /* ########################### The map style ############################ */
+      html, body, #map-container {
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        font-family: sans-serif;
+        background-color: #04041b;
+      }
+      /* ########################### The drone popup style ############################ */
+      .ol-popup {
+      position: fixed; /* Stay in place */
+      background-color: white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #cccccc;
+      top: 6%;
+      right: 7%;
+      max-width: 200px;
+      max-height: 280px;
+      z-index: 1;
+    }
+    .ol-popup-button {
+      background-color: #e7e7e7;
+      border: none;
+      /*color: white;*/
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      color: black;
+      margin: 4px 2px;
+      cursor: pointer;
+    }
+    .ol-popup-closer {
+      text-decoration: none;
+      position: absolute;
+      top: 2px;
+      right: 8px;
+    }
+    .ol-popup-closer:after {
+      content: "✖";
+    }
+
+    /* ########################### The error sidebar style ############################ */
+    .sidebar {
+      height: 100%; /* 100% Full-height */
+      width: 0; /* 0 width - change this with JavaScript */
+      position: fixed; /* Stay in place */
+      z-index: 1; /* Stay on top */
+      top: 0;
+      left: 0;
+      background-color: #111; /* Black*/
+      overflow-x: hidden; /* Disable horizontal scroll */
+      padding-top: 60px; /* Place content 60px from the top */
+      transition: 0.3s; /* 0.5 second transition effect to slide in the sidebar */
+    }
+
+    /* The sidebar links */
+    .sidebar a {
+      padding: 8px 8px 8px 32px;
+      text-decoration: none;
+      font-size: 25px;
+      color: #818181;
+      display: block;
+      transition: 0.3s;
+    }
+
+    /* When you mouse over the navigation links, change their color */
+    .sidebar a:hover {
+      color: #f1f1f1;
+    }
+
+    /* Position and style the close button (top right corner) */
+    .sidebar .closebtn {
+      position: absolute;
+      top: 0;
+      right: 25px;
+      font-size: 36px;
+      margin-left: 50px;
+    }
+
+    /* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
+    @media screen and (max-height: 450px) {
+      .sidebar {padding-top: 15px;}
+      .sidebar a {font-size: 18px;}
+    }
+    </style>
+
+    <script type="text/javascript" src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+    <script type="text/javascript" src="http://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+
+  </head>
+  <body>
+     <!-- ######################### The map ######################### -->
+    <div id="map-container"></div>
+    <!-- ######################### The drone popup ######################### -->
+    <div id="popup" class="ol-popup">
+      <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+      <div id="popup-content"></div>
+      <!-- Send drone to route -->
+      <button id="btn_drone_start" type="button" class="ol-popup-button" onclick="alert('Hello world!')">Start Route</button>
+      <!-- center on the selectet towers/limic -->
+      <button id="btn_route" type="button" class="ol-popup-button" onclick="alert('Hello world!')">Show Route</button>
+      <!-- Show start tower of the route -->
+      <button id="btn_start" type="button" class="ol-popup-button">Show Start</button>
+      <!-- Show end tower of the route -->
+      <button id="btn_end" formtarget=""type="button" class="ol-popup-button">Show End</button>
+    </div>
+
+    <!-- ####################### The error sidebar ############################## -->
+    <div id="errorbar" class="sidebar">
+       <a href="#" id="error_close_bnt" class="closebtn">&times;</a>
+       <!-- Pictures of the errors -->
+       <picture id="error_imgs">
+          <!--<img id="error1" style="width:200px">-->
+       </picture>
+       <!-- remove error -->
+       <button id="btn_remove_error" type="button" class="ol-popup-button">Remove site</button>
+    </div>
+
+    <input type="file" name="data/output.txt" id="file">
+
+   <!-- ########################## Close button effect for the error side bar ########################### -->
+  </body>
+</html>
